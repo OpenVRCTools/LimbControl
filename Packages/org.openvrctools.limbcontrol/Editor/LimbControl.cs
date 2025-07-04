@@ -11,7 +11,6 @@ using System.Text.RegularExpressions;
 using Object = UnityEngine.Object;
 using static OpenVRCTools.LimbControl.LimbControl.CustomGUI;
 using UnityEditor.SceneManagement;
-using UnityEngine.Networking;
 
 namespace OpenVRCTools.LimbControl
 {
@@ -19,25 +18,19 @@ namespace OpenVRCTools.LimbControl
     {
 	    private const string LAYER_TAG = "Limb Control";
 
-
 		public static VRCAvatarDescriptor avatar;
         public static bool useSameParameter;
         public static bool useCustomTree;
         public static bool addTracking;
         public static bool addRightArm, addLeftArm, addRightLeg, addLeftLeg;
-
         public static BlendTree customTree;
-
 		private static string assetPath;
         private static AnimationClip emptyClip;
 		private static Vector2 scroll;
 
-
 		[MenuItem("OpenVRCTools/Limb Control", false, 566)]
-        public static void ShowWindow()
-        {
+        public static void ShowWindow() =>
             GetWindow<LimbControl>("Limb Control").titleContent.image = EditorGUIUtility.IconContent("AvatarMask Icon").image;
-        }
 
         public void OnGUI()
         {
@@ -48,7 +41,6 @@ namespace OpenVRCTools.LimbControl
             {
                 avatar = (VRCAvatarDescriptor)EditorGUILayout.ObjectField(Content.avatarContent, avatar, typeof(VRCAvatarDescriptor), true);
                 isValid &= avatar;
-
             }
 
             EditorGUILayout.Space();
@@ -67,7 +59,8 @@ namespace OpenVRCTools.LimbControl
                     DrawColoredButton(ref addLeftLeg, "Left Leg");
 					DrawColoredButton(ref addRightLeg, "Right Leg");
                 }
-				DrawColoredButton(ref addTracking, Content.trackingContent);
+
+                DrawColoredButton(ref addTracking, Content.trackingContent);
                 EditorGUILayout.Space();
             }
 
@@ -75,12 +68,16 @@ namespace OpenVRCTools.LimbControl
             {
 	            DrawTitle("Extra", "To Add to or Modify Limb Control");
 	            bool canCombineControl = Convert.ToInt32(addRightArm) + Convert.ToInt32(addLeftArm) + Convert.ToInt32(addLeftLeg) + Convert.ToInt32(addRightLeg) > 1;
-	            if (!canCombineControl) useSameParameter = false;
-	            using (new EditorGUI.DisabledScope(!canCombineControl))
-		            DrawColoredButton(ref useSameParameter, Content.sameControlContent);
+
+                if (!canCombineControl)
+                    useSameParameter = false;
+
+                using (new EditorGUI.DisabledScope(!canCombineControl))
+                    DrawColoredButton(ref useSameParameter, Content.sameControlContent);
 
 
-	            if (!useCustomTree) DrawColoredButton(ref useCustomTree, Content.customTreeContent);
+	            if (!useCustomTree)
+                    DrawColoredButton(ref useCustomTree, Content.customTreeContent);
 	            else
 	            {
 		            using (new GUILayout.HorizontalScope())
@@ -95,7 +92,6 @@ namespace OpenVRCTools.LimbControl
 			EditorGUILayout.Space();
 			EditorGUILayout.Space();
 	        GUILayout.Label(new GUIContent("Required Memory: 0!","Limb Control only needs VRC's IK sync and no parameter syncing!"), EditorStyles.centeredGreyMiniLabel);
-            
 
 	        isValid &= addLeftArm || addLeftLeg || addRightArm || addRightLeg || addTracking;
 
@@ -105,42 +101,38 @@ namespace OpenVRCTools.LimbControl
                 using(new EditorGUI.DisabledScope(!isValid))
                     if (GUILayout.Button("Apply Limb Control", Content.comicallyLargeButton, GUILayout.Height(32)))
                         InitAddControl(!(addLeftArm || addLeftLeg || addRightArm || addRightLeg));
-                
+
                 using (new BGColoredScope(Color.red))
                 using (new EditorGUI.DisabledScope(!avatar))
-					if (GUILayout.Button(Content.iconTrash,new GUIStyle(GUI.skin.button) {padding=new RectOffset()},GUILayout.Width(40),GUILayout.Height(32)))
+					if (GUILayout.Button(Content.iconTrash, new GUIStyle(GUI.skin.button) { padding = new RectOffset() }, GUILayout.Width(40), GUILayout.Height(32)))
 						if (EditorUtility.DisplayDialog("Remove Limb Control", "Remove Limb Control from " + avatar.gameObject.name + "?\nThis action can't be reverted.", "Remove", "Cancel"))
 							RemoveLimbControl();
             }
 
             DrawSeparator();
             assetPath = AssetFolderPath(assetPath, "Generated Assets", "LimbControlSavePath");
-
             EditorGUILayout.EndScrollView();
         }
 
         private static string folderPath;
-        private static void InitAddControl(bool onlyTracking=false)
-        {
 
+        private static void InitAddControl(bool onlyTracking = false)
+        {
             if (avatar.expressionsMenu)
             {
                 int cCost = (!onlyTracking ? 1 : 0) + (addTracking ? 1 : 0);
-                if (onlyTracking && !avatar.expressionsMenu.controls.Any(c => c.name == "Limb Control" && c.type == VRCExpressionsMenu.Control.ControlType.SubMenu && c.subMenu))
-                {
-                    cCost -= 1;
-                }
-                if (addTracking && !avatar.expressionsMenu.controls.Any(c => c.name == "Tracking Control" && c.type == VRCExpressionsMenu.Control.ControlType.SubMenu && c.subMenu))
-                {
-                    cCost -= 1;
-                }
 
-                if ( 8 - (avatar.expressionsMenu.controls.Count + cCost) < 0)
+                if (onlyTracking && !avatar.expressionsMenu.controls.Any(c => c.name == "Limb Control" && c.type == VRCExpressionsMenu.Control.ControlType.SubMenu && c.subMenu))
+                    cCost -= 1;
+
+                if (addTracking && !avatar.expressionsMenu.controls.Any(c => c.name == "Tracking Control" && c.type == VRCExpressionsMenu.Control.ControlType.SubMenu && c.subMenu))
+                    cCost -= 1;
+
+                if (8 - (avatar.expressionsMenu.controls.Count + cCost) < 0)
                 {
                     Debug.LogError("Expression Menu can't contain more than 8 controls!");
                     return;
                 }
-            
             }
 
             ReadyPath(assetPath);
@@ -149,15 +141,18 @@ namespace OpenVRCTools.LimbControl
             emptyClip = Resources.Load<AnimationClip>("Animations/LC_EmptyClip");
 
             AnimatorController myLocomotion = GetPlayableLayer(avatar, VRCAvatarDescriptor.AnimLayerType.Base);
+
             if (!myLocomotion)
                 myLocomotion = Resources.Load<AnimatorController>("Animations/LC_BaseLocomotion");
 
             myLocomotion = CopyAssetAndReturn<AnimatorController>(myLocomotion, AssetDatabase.GenerateUniqueAssetPath(folderPath + "/" + myLocomotion.name + ".controller"));
             SetPlayableLayer(avatar, VRCAvatarDescriptor.AnimLayerType.Base, myLocomotion);
 
-            if (onlyTracking) goto AddTrackingJump;
+            if (onlyTracking)
+                goto AddTrackingJump;
 
             AnimatorController myAction = GetPlayableLayer(avatar, VRCAvatarDescriptor.AnimLayerType.Action);
+
             if (!myAction)
             {
                 myAction = new AnimatorController() { name = "LC_BaseAction" };
@@ -165,28 +160,31 @@ namespace OpenVRCTools.LimbControl
                 myAction.AddLayer("Base Layer");
             }
             else
-                myAction = CopyAssetAndReturn<AnimatorController>(myAction, AssetDatabase.GenerateUniqueAssetPath(folderPath + "/" + myAction.name + ".controller"));
+                myAction = CopyAssetAndReturn(myAction, AssetDatabase.GenerateUniqueAssetPath(folderPath + "/" + myAction.name + ".controller"));
+
             SetPlayableLayer(avatar, VRCAvatarDescriptor.AnimLayerType.Action, myAction);
 
             AnimatorController mySitting = GetPlayableLayer(avatar, VRCAvatarDescriptor.AnimLayerType.Sitting);
+
             if (!mySitting)
                 mySitting = Resources.Load<AnimatorController>("Animations/LC_BaseSitting");
 
-            mySitting = CopyAssetAndReturn<AnimatorController>(mySitting, AssetDatabase.GenerateUniqueAssetPath(folderPath + "/" + mySitting.name + ".controller"));
+            mySitting = CopyAssetAndReturn(mySitting, AssetDatabase.GenerateUniqueAssetPath(folderPath + "/" + mySitting.name + ".controller"));
             SetPlayableLayer(avatar, VRCAvatarDescriptor.AnimLayerType.Sitting, mySitting);
 
             AvatarMask GetNewMask(string n)
             {
-                AvatarMask newMask = new AvatarMask() { name = n };
+                AvatarMask newMask = new AvatarMask { name = n };
+
                 for (int i = 0; i < 13; i++)
-                {
                     newMask.SetHumanoidBodyPartActive((AvatarMaskBodyPart)i, false);
-                }
+
                 AssetDatabase.CreateAsset(newMask, AssetDatabase.GenerateUniqueAssetPath(folderPath + "/" + newMask.name + ".mask"));
                 return newMask;
             }
 
             AvatarMask myMask = null;
+
             if (useSameParameter)
                 myMask = GetNewMask("LC_MixedMask");
 
@@ -194,7 +192,7 @@ namespace OpenVRCTools.LimbControl
 
             void DoControl(bool isRight, bool isArm)
             {
-                string direction = isRight? "Right" : "Left";
+                string direction = isRight ? "Right" : "Left";
                 string limbName = isArm ? "Arm" : "Leg";
                 string fullName = direction + limbName;
 
@@ -202,6 +200,7 @@ namespace OpenVRCTools.LimbControl
                     myMask = GetNewMask($"LC_{fullName}Mask");
 
                 myMask.SetHumanoidBodyPartActive((AvatarMaskBodyPart)Enum.Parse(typeof(AvatarMaskBodyPart), fullName, true), true);
+
                 if (!useSameParameter)
                     AddControl(myMask, customTree, $"LC/{fullName}");
             }
@@ -211,25 +210,27 @@ namespace OpenVRCTools.LimbControl
             if (addLeftLeg) DoControl(false, false);
             if (addLeftArm) DoControl(false, true);
 
-
             if (useSameParameter)
             {
                 string newBaseParameter = "Mixed";
-                
+
                 if (avatar.expressionParameters)
                     newBaseParameter = GenerateUniqueString(newBaseParameter, s => avatar.expressionParameters.parameters.All(p => p.name != s));
+
                 AddControl(myMask, customTree, $"LC/{newBaseParameter}");
             }
 
             Debug.Log("<color=green>[Limb Control]</color> Added Limb Control successfully!");
 
-            AddTrackingJump:
-            if (addTracking) AddTracking(myLocomotion);
+        AddTrackingJump:
+            if (addTracking)
+                AddTracking(myLocomotion);
         }
-		public static void AddControl(AvatarMask mask, BlendTree tree, string baseparameter)
-		{
-			var tempParameter = $"{baseparameter}/Temp";
-			var toggleParameter = $"{baseparameter}/Toggle";
+
+        public static void AddControl(AvatarMask mask, BlendTree tree, string baseparameter)
+        {
+            var tempParameter = $"{baseparameter}/Temp";
+            var toggleParameter = $"{baseparameter}/Toggle";
             var treeParameter1 = $"{baseparameter}/X";
             var treeParameter2 = $"{baseparameter}/Y";
             avatar.customExpressions = true;
@@ -244,15 +245,13 @@ namespace OpenVRCTools.LimbControl
             if (!myParams)
                 myParams = ReplaceParameters(avatar, folderPath);
 
-            
-
             VRCExpressionsMenu mainMenu = myMenu.controls.Find(c => c.name == "Limb Control" && c.type == VRCExpressionsMenu.Control.ControlType.SubMenu && c.subMenu)?.subMenu;
 
             if (mainMenu == null)
             {
                 mainMenu = CreateInstance<VRCExpressionsMenu>();
                 mainMenu.controls = new List<VRCExpressionsMenu.Control>();
-                AddControls(myMenu, new List<VRCExpressionsMenu.Control>() { new VRCExpressionsMenu.Control() { name = "Limb Control", type = VRCExpressionsMenu.Control.ControlType.SubMenu, subMenu = mainMenu, icon = Resources.Load<Texture2D>("Icons/LC_HandWaving") } });
+                AddControls(myMenu, new List<VRCExpressionsMenu.Control>() { new VRCExpressionsMenu.Control { name = "Limb Control", type = VRCExpressionsMenu.Control.ControlType.SubMenu, subMenu = mainMenu, icon = Resources.Load<Texture2D>("Icons/LC_HandWaving") } });
                 AssetDatabase.CreateAsset(mainMenu, folderPath + "/LC_LimbControlMainMenu.asset");
             }
 
@@ -260,62 +259,64 @@ namespace OpenVRCTools.LimbControl
             var subMenuPath = $"{folderPath}/{ValidateName(baseparameter)} Control Menu.asset";
             mySubmenu = CopyAssetAndReturn(mySubmenu, subMenuPath);
 
-			mySubmenu.controls[0].value = 1;
-            mySubmenu.controls[0].parameter = new VRCExpressionsMenu.Control.Parameter() { name = toggleParameter };
+            mySubmenu.controls[0].value = 1;
+            mySubmenu.controls[0].parameter = new VRCExpressionsMenu.Control.Parameter { name = toggleParameter };
 
             VRCExpressionsMenu.Control.Parameter[] subParameters = new VRCExpressionsMenu.Control.Parameter[2];
             subParameters[0] = new VRCExpressionsMenu.Control.Parameter { name = treeParameter1 };
-            subParameters[1] = new VRCExpressionsMenu.Control.Parameter() { name = treeParameter2 };
+            subParameters[1] = new VRCExpressionsMenu.Control.Parameter { name = treeParameter2 };
 
-            mySubmenu.controls[1].parameter = new VRCExpressionsMenu.Control.Parameter(){name = tempParameter };
+            mySubmenu.controls[1].parameter = new VRCExpressionsMenu.Control.Parameter { name = tempParameter };
             mySubmenu.controls[1].subParameters = subParameters;
 
             EditorUtility.SetDirty(mySubmenu);
 
-            var indStart = toggleParameter.IndexOf('/')+1;
+            var indStart = toggleParameter.IndexOf('/') + 1;
             var indEnd = toggleParameter.LastIndexOf('/');
+
             if (indStart == indEnd)
-	            indStart = 0;
+                indStart = 0;
+
             if (indEnd == 0)
                 indEnd = toggleParameter.Length;
 
             var midName = toggleParameter.Substring(indStart, indEnd - indStart);
             var finalName = midName.Aggregate(string.Empty, (result, next) =>
             {
-	            if (char.IsUpper(next) && result.Length > 0)
-		            result += ' ';
-	            return result + next;
+                if (char.IsUpper(next) && result.Length > 0)
+                    result += ' ';
+
+                return result + next;
             });
 
-			VRCExpressionsMenu.Control newControl = new VRCExpressionsMenu.Control
+            VRCExpressionsMenu.Control newControl = new VRCExpressionsMenu.Control
             {
                 type = VRCExpressionsMenu.Control.ControlType.SubMenu,
                 name = finalName,
                 subMenu = mySubmenu
 
             };
-            AddControls(mainMenu, new List<VRCExpressionsMenu.Control>() { newControl });
-
-            AddParameters(myParams, new List<VRCExpressionParameters.Parameter>() {
-	            new VRCExpressionParameters.Parameter(){ name = tempParameter,  saved = false, valueType = VRCExpressionParameters.ValueType.Bool,  networkSynced = false, defaultValue = 0 }, 
-	            new VRCExpressionParameters.Parameter(){ name = toggleParameter,saved = true, valueType = VRCExpressionParameters.ValueType.Bool,  networkSynced = false, defaultValue = 0 }, 
-	            new VRCExpressionParameters.Parameter(){ name = treeParameter1, saved = true,  valueType = VRCExpressionParameters.ValueType.Float, networkSynced = false, defaultValue = 0 }, 
-	            new VRCExpressionParameters.Parameter(){ name = treeParameter2, saved = true,  valueType = VRCExpressionParameters.ValueType.Float, networkSynced = false, defaultValue = 0 }
+            AddControls(mainMenu, new List<VRCExpressionsMenu.Control> { newControl });
+            AddParameters(myParams, new List<VRCExpressionParameters.Parameter> {
+                new VRCExpressionParameters.Parameter { name = tempParameter,  saved = false, valueType = VRCExpressionParameters.ValueType.Bool,  networkSynced = false, defaultValue = 0 },
+                new VRCExpressionParameters.Parameter { name = toggleParameter,saved = true, valueType = VRCExpressionParameters.ValueType.Bool,  networkSynced = false, defaultValue = 0 },
+                new VRCExpressionParameters.Parameter { name = treeParameter1, saved = true,  valueType = VRCExpressionParameters.ValueType.Float, networkSynced = false, defaultValue = 0 },
+                new VRCExpressionParameters.Parameter { name = treeParameter2, saved = true,  valueType = VRCExpressionParameters.ValueType.Float, networkSynced = false, defaultValue = 0 }
             });
-        
-            BlendTree myTree = CopyAssetAndReturn<BlendTree>(tree, AssetDatabase.GenerateUniqueAssetPath(folderPath + "/" + tree.name + ".blendtree"));
+
+            BlendTree myTree = CopyAssetAndReturn(tree, AssetDatabase.GenerateUniqueAssetPath(folderPath + "/" + tree.name + ".blendtree"));
             myTree.blendParameter = treeParameter1;
             myTree.blendParameterY = treeParameter2;
             EditorUtility.SetDirty(myTree);
 
             void AddLimbLayer(AnimatorController controller, bool setTracking)
             {
-				ReadyParameter(controller, tempParameter, AnimatorControllerParameterType.Bool);
-	            ReadyParameter(controller, toggleParameter, AnimatorControllerParameterType.Bool);
+                ReadyParameter(controller, tempParameter, AnimatorControllerParameterType.Bool);
+                ReadyParameter(controller, toggleParameter, AnimatorControllerParameterType.Bool);
                 ReadyParameter(controller, treeParameter1, AnimatorControllerParameterType.Float);
                 ReadyParameter(controller, treeParameter2, AnimatorControllerParameterType.Float);
 
-                AnimatorControllerLayer newLayer = AddLayer(controller, toggleParameter, 1, mask); 
+                AnimatorControllerLayer newLayer = AddLayer(controller, toggleParameter, 1, mask);
                 AddTag(newLayer, LAYER_TAG);
 
                 AnimatorState firstState = newLayer.stateMachine.AddState("Idle", new Vector3(30, 160));
@@ -376,7 +377,6 @@ namespace OpenVRCTools.LimbControl
                         trackingControl.trackingLeftFoot = VRCAnimatorTrackingControl.TrackingType.Tracking;
                         trackingControl2.trackingLeftFoot = VRCAnimatorTrackingControl.TrackingType.Animation;
                     }
-
                 }
 
                 var t = firstState.AddTransition(secondState, false);
@@ -391,9 +391,7 @@ namespace OpenVRCTools.LimbControl
                 t.duration = 0.15f;
                 t.AddCondition(AnimatorConditionMode.IfNot, 0, toggleParameter);
                 t.AddCondition(AnimatorConditionMode.IfNot, 0, tempParameter);
-                
             }
-
 
             AnimatorController myLocomotion = GetPlayableLayer(avatar, VRCAvatarDescriptor.AnimLayerType.Base);
             AddLimbLayer(myLocomotion, true);
@@ -424,8 +422,8 @@ namespace OpenVRCTools.LimbControl
             VRCExpressionsMenu trackingMenu = Resources.Load<VRCExpressionsMenu>("LC_TrackingMainMenu");
             trackingMenu = ReplaceMenu(trackingMenu, folderPath, true);
 
-            AddControls(myMenu, new List<VRCExpressionsMenu.Control>() { new VRCExpressionsMenu.Control() {name="Tracking Control", type= VRCExpressionsMenu.Control.ControlType.SubMenu, subMenu = trackingMenu, icon = Resources.Load<Texture2D>("Icons/LC_RnR") } });
-            AddParameters(myParams, new List<VRCExpressionParameters.Parameter>() { new VRCExpressionParameters.Parameter() { name = "LC/Tracking Control", saved = false, valueType = VRCExpressionParameters.ValueType.Int, networkSynced = false } });
+            AddControls(myMenu, new List<VRCExpressionsMenu.Control> { new VRCExpressionsMenu.Control() {name="Tracking Control", type= VRCExpressionsMenu.Control.ControlType.SubMenu, subMenu = trackingMenu, icon = Resources.Load<Texture2D>("Icons/LC_RnR") } });
+            AddParameters(myParams, new List<VRCExpressionParameters.Parameter> { new VRCExpressionParameters.Parameter() { name = "LC/Tracking Control", saved = false, valueType = VRCExpressionParameters.ValueType.Int, networkSynced = false } });
 
             AnimatorControllerLayer newLayer = AddLayer(c, "LC/Tracking Control", 0);
             AddTag(newLayer, LAYER_TAG);
@@ -479,17 +477,18 @@ namespace OpenVRCTools.LimbControl
             Debug.Log("Removing Limb Control from " + avatar.gameObject.name);
             void RemoveControl(AnimatorController c)
             {
-                if (!c)
-                    return;
-                for (int i=c.layers.Length-1;i>=0;i--)
+                if (!c) return;
+
+                for (int i = c.layers.Length - 1; i >= 0; i--)
                 {
                     if (HasTag(c.layers[i], LAYER_TAG))
                     {
-                        Debug.Log("Removed Layer " + c.layers[i].name+" from "+c.name);
+                        Debug.Log("Removed Layer " + c.layers[i].name + " from " + c.name);
                         c.RemoveLayer(i);
                     }
                 }
-                for (int i=c.parameters.Length-1;i>=0;i--)
+
+                for (int i = c.parameters.Length - 1; i >= 0; i--)
                 {
                     if (c.parameters[i].name.StartsWith("LC/"))
                     {
@@ -498,6 +497,7 @@ namespace OpenVRCTools.LimbControl
                     }
                 }
             }
+
             RemoveControl(GetPlayableLayer(avatar, VRCAvatarDescriptor.AnimLayerType.Base));
             RemoveControl(GetPlayableLayer(avatar,VRCAvatarDescriptor.AnimLayerType.Action));
             RemoveControl(GetPlayableLayer(avatar, VRCAvatarDescriptor.AnimLayerType.Sitting));
@@ -513,6 +513,7 @@ namespace OpenVRCTools.LimbControl
                         EditorUtility.SetDirty(avatar.expressionsMenu);
                         continue;
                     }
+
                     if (avatar.expressionsMenu.controls[i].name == "Tracking Control")
                     {
                         Debug.Log("Removed Tracking Control Submenu from Expression Menu");
@@ -532,17 +533,17 @@ namespace OpenVRCTools.LimbControl
                         ArrayUtility.RemoveAt(ref avatar.expressionParameters.parameters, i);
                     }
                 }
+
                 EditorUtility.SetDirty(avatar.expressionParameters);
             }
 
             Debug.Log("Finished removing Limb Control!");
         }
 
-
-
         private void OnEnable()
         {
-            if (avatar == null) avatar = FindObjectOfType<VRCAvatarDescriptor>();
+            if (avatar == null)
+                avatar = FindObjectOfType<VRCAvatarDescriptor>();
 
             assetPath = EditorPrefs.GetString("LimbControlPath", "Assets/OpenVRCTools/LimbControl/Generated Assets");
             GetBaseTree();
@@ -556,27 +557,33 @@ namespace OpenVRCTools.LimbControl
 
 		#region GUI Methods
 
-		private static void DrawColoredButton(ref bool toggle, string label) => DrawColoredButton(ref toggle, new GUIContent(label));
-		private static void DrawColoredButton(ref bool toggle, GUIContent label)
-		{
-			using (new BGColoredScope(toggle))
-				toggle = GUILayout.Toggle(toggle, label, EditorStyles.toolbarButton);
-		}
+		private static void DrawColoredButton(ref bool toggle, string label) =>
+            DrawColoredButton(ref toggle, new GUIContent(label));
+
+        private static void DrawColoredButton(ref bool toggle, GUIContent label)
+        {
+            using (new BGColoredScope(toggle))
+                toggle = GUILayout.Toggle(toggle, label, EditorStyles.toolbarButton);
+        }
 
 		private static void DrawTitle(string title, string tooltip = "")
 		{
 			using (new GUILayout.HorizontalScope("in bigtitle"))
 			{
 				bool hasTooltip = !string.IsNullOrEmpty(tooltip);
-				if (hasTooltip) GUILayout.Space(21);
+
+                if (hasTooltip)
+                    GUILayout.Space(21);
+
                 GUILayout.Label(title, Content.styleTitle);
-                if (hasTooltip) GUILayout.Label(new GUIContent(Content.iconHelp){tooltip = tooltip}, GUILayout.Width(18));
+
+                if (hasTooltip)
+                    GUILayout.Label(new GUIContent(Content.iconHelp) { tooltip = tooltip }, GUILayout.Width(18));
 			}
 		}
 		#endregion
 
 		#region DSHelper Methods
-
 		private static AnimatorController GetPlayableLayer(VRCAvatarDescriptor avi, VRCAvatarDescriptor.AnimLayerType type)
         {
             for (var i = 0; i < avi.baseAnimationLayers.Length; i++)
@@ -589,13 +596,15 @@ namespace OpenVRCTools.LimbControl
 
             return null;
         }
-        private static bool SetPlayableLayer(VRCAvatarDescriptor avi, VRCAvatarDescriptor.AnimLayerType type,RuntimeAnimatorController ani)
+
+        private static bool SetPlayableLayer(VRCAvatarDescriptor avi, VRCAvatarDescriptor.AnimLayerType type, RuntimeAnimatorController ani)
         {
             for (var i = 0; i < avi.baseAnimationLayers.Length; i++)
                 if (avi.baseAnimationLayers[i].type == type)
                 {
                     if (ani)
                         avi.customizeAnimationLayers = true;
+
                     avi.baseAnimationLayers[i].isDefault = !ani;
                     avi.baseAnimationLayers[i].animatorController = ani;
                     EditorUtility.SetDirty(avi);
@@ -607,19 +616,17 @@ namespace OpenVRCTools.LimbControl
                 {
                     if (ani)
                         avi.customizeAnimationLayers = true;
+
                     avi.specialAnimationLayers[i].isDefault = !ani;
                     avi.specialAnimationLayers[i].animatorController = ani;
                     EditorUtility.SetDirty(avi);
                     return true;
                 }
 
-
             return false;
         }
-        private static AnimatorController GetController(RuntimeAnimatorController controller)
-        {
-            return AssetDatabase.LoadAssetAtPath<AnimatorController>(AssetDatabase.GetAssetPath(controller));
-        }
+        private static AnimatorController GetController(RuntimeAnimatorController controller) =>
+            AssetDatabase.LoadAssetAtPath<AnimatorController>(AssetDatabase.GetAssetPath(controller));
 
         private static AnimatorStateTransition InstantTransition(AnimatorState state, AnimatorState destination)
         {
@@ -627,11 +634,12 @@ namespace OpenVRCTools.LimbControl
             t.duration = 0;
             return t;
         }
+
         private static AnimatorStateTransition InstantExitTransition(AnimatorState state)
         {
-	        var t = state.AddExitTransition(false);
-	        t.duration = 0;
-	        return t;
+            var t = state.AddExitTransition(false);
+            t.duration = 0;
+            return t;
         }
 
 		private static void AddTag(AnimatorControllerLayer layer, string tag)
@@ -643,10 +651,9 @@ namespace OpenVRCTools.LimbControl
             t.mute = true;
             t.name = tag;
         }
-        private static bool HasTag(AnimatorControllerLayer layer, string tag)
-        {
-            return layer.stateMachine.anyStateTransitions.Any(t => t.isExit && t.mute && t.name == tag);
-        }
+
+        private static bool HasTag(AnimatorControllerLayer layer, string tag) =>
+            layer.stateMachine.anyStateTransitions.Any(t => t.isExit && t.mute && t.name == tag);
 
         private static AnimatorControllerLayer AddLayer(AnimatorController controller, string name, float defaultWeight, AvatarMask mask = null)
         {
@@ -668,14 +675,17 @@ namespace OpenVRCTools.LimbControl
             controller.AddLayer(newLayer);
             return newLayer;
         }
+
         private static void ReadyParameter(AnimatorController controller, string parameter, AnimatorControllerParameterType type)
         {
             if (!GetParameter(controller, parameter, out _))
                 controller.AddParameter(parameter, type);
         }
+
         private static bool GetParameter(AnimatorController controller, string parameter, out int index)
         {
             index = -1;
+
             for (int i = 0; i < controller.parameters.Length; i++)
             {
                 if (controller.parameters[i].name == parameter)
@@ -684,10 +694,9 @@ namespace OpenVRCTools.LimbControl
                     return true;
                 }
             }
+
             return false;
         }
-
-
 
         private static void ReadyPath(string folderPath)
         {
@@ -701,26 +710,26 @@ namespace OpenVRCTools.LimbControl
 		internal static string ValidatePath(string path)
 		{
 			string regexFolderReplace = Regex.Escape(new string(Path.GetInvalidPathChars()));
-
 			path = path.Replace('\\', '/');
-			if (path.IndexOf('/') > 0)
-				path = string.Join("/", path.Split('/').Select(s => Regex.Replace(s, $@"[{regexFolderReplace}]", "-")));
+
+            if (path.IndexOf('/') > 0)
+                path = string.Join("/", path.Split('/').Select(s => Regex.Replace(s, $@"[{regexFolderReplace}]", "-")));
 
 			return path;
 		}
-		internal static string ValidateName(string name)
-		{
-			string regexFileReplace = Regex.Escape(new string(Path.GetInvalidFileNameChars()));
-			return string.IsNullOrEmpty(name) ? "Unnamed" : Regex.Replace(name, $@"[{regexFileReplace}]", "-");
-		}
 
+        internal static string ValidateName(string name)
+        {
+            string regexFileReplace = Regex.Escape(new string(Path.GetInvalidFileNameChars()));
+            return string.IsNullOrEmpty(name) ? "Unnamed" : Regex.Replace(name, $@"[{regexFileReplace}]", "-");
+        }
 
 		private static T CopyAssetAndReturn<T>(string path, string newpath) where T : Object
         {
             if (path != newpath)
                 AssetDatabase.CopyAsset(path, newpath);
-            return AssetDatabase.LoadAssetAtPath<T>(newpath);
 
+            return AssetDatabase.LoadAssetAtPath<T>(newpath);
         }
 
 		internal static T CopyAssetAndReturn<T>(T obj, string newPath) where T : Object
@@ -729,21 +738,22 @@ namespace OpenVRCTools.LimbControl
 			Object mainAsset = AssetDatabase.LoadMainAssetAtPath(assetPath);
 
 			if (!mainAsset) return null;
-			if (obj != mainAsset)
-			{
-				T newAsset = Object.Instantiate(obj);
-				AssetDatabase.CreateAsset(newAsset, newPath);
-				return newAsset;
-			}
+
+            if (obj != mainAsset)
+            {
+                T newAsset = Instantiate(obj);
+                AssetDatabase.CreateAsset(newAsset, newPath);
+                return newAsset;
+            }
 
 			AssetDatabase.CopyAsset(assetPath, newPath);
 			return AssetDatabase.LoadAssetAtPath<T>(newPath);
 		}
 
-
 		private static VRCExpressionParameters ReplaceParameters(VRCAvatarDescriptor avi, string folderPath)
         {
             avi.customExpressions = true;
+
             if (avi.expressionParameters)
             {
                 avi.expressionParameters = CopyAssetAndReturn<VRCExpressionParameters>(avi.expressionParameters, AssetDatabase.GenerateUniqueAssetPath(folderPath + "/" + avi.expressionParameters.name + ".asset"));
@@ -763,80 +773,77 @@ namespace OpenVRCTools.LimbControl
         private static VRCExpressionsMenu ReplaceMenu(VRCExpressionsMenu menu, string folderPath, bool deep = true, Dictionary<VRCExpressionsMenu, VRCExpressionsMenu> copyDict = null)
         {
             VRCExpressionsMenu newMenu;
-            if (!menu)
-                return null;
-            if (copyDict == null)
-                copyDict = new Dictionary<VRCExpressionsMenu, VRCExpressionsMenu>();
-            
+            if (!menu) return null;
+            copyDict ??= new Dictionary<VRCExpressionsMenu, VRCExpressionsMenu>();
+
             if (copyDict.ContainsKey(menu))
                 newMenu = copyDict[menu];
             else
             {
-                newMenu = CopyAssetAndReturn<VRCExpressionsMenu>(menu, AssetDatabase.GenerateUniqueAssetPath(folderPath + "/" + menu.name + ".asset"));
+                newMenu = CopyAssetAndReturn(menu, AssetDatabase.GenerateUniqueAssetPath(folderPath + "/" + menu.name + ".asset"));
                 copyDict.Add(menu, newMenu);
                 if (!deep) return newMenu;
 
                 foreach (var c in newMenu.controls.Where(c => c.type == VRCExpressionsMenu.Control.ControlType.SubMenu && c.subMenu != null))
-                {
                     c.subMenu = ReplaceMenu(c.subMenu, folderPath, true, copyDict);
-                }
 
                 EditorUtility.SetDirty(newMenu);
             }
+
             return newMenu;
         }
 
         private static VRCExpressionsMenu ReplaceMenu(VRCAvatarDescriptor avi, string folderPath, bool deep = false)
         {
             avi.customExpressions = true;
+
             if (avi.expressionsMenu)
             {
                 avi.expressionsMenu = ReplaceMenu(avi.expressionsMenu, folderPath, deep);
                 return avi.expressionsMenu;
             }
 
-
-            var newMenu = ScriptableObject.CreateInstance<VRCExpressionsMenu>();
+            var newMenu = CreateInstance<VRCExpressionsMenu>();
             newMenu.controls = new List<VRCExpressionsMenu.Control>();
             AssetDatabase.CreateAsset(newMenu, AssetDatabase.GenerateUniqueAssetPath(folderPath + "/" + avi.gameObject.name + " Menu.asset"));
             avi.expressionsMenu = newMenu;
             avi.customExpressions = true;
             return newMenu;
-
         }
-        
+
         private static void AddControls(VRCExpressionsMenu target, List<VRCExpressionsMenu.Control> newCons)
         {
             foreach (var c in newCons)
                 target.controls.Add(c);
-            
+
             EditorUtility.SetDirty(target);
         }
 
         private static void AddParameters(VRCExpressionParameters target, List<VRCExpressionParameters.Parameter> newParams)
         {
             target.parameters = target.parameters == null || target.parameters.Length <= 0 ? newParams.ToArray() : target.parameters.Concat(newParams).ToArray();
-            
             EditorUtility.SetDirty(target);
             AssetDatabase.WriteImportSettingsIfDirty(AssetDatabase.GetAssetPath(target));
         }
+
         private static string GenerateUniqueString(string s, System.Func<string, bool> check)
         {
             if (check(s))
                 return s;
 
             int suffix = 0;
-
             int.TryParse(s.Substring(s.Length - 2, 2), out int d);
+
             if (d >= 0)
                 suffix = d;
-            if (suffix > 0) s = suffix > 9 ? s.Substring(0, s.Length - 2) : s.Substring(0, s.Length - 1);
+
+            if (suffix > 0)
+                s = suffix > 9 ? s.Substring(0, s.Length - 2) : s.Substring(0, s.Length - 1);
 
             s = s.Trim();
-
             suffix++;
-
             string newString = s + " " + suffix;
+
             while (!check(newString))
             {
                 suffix++;
@@ -854,25 +861,24 @@ namespace OpenVRCTools.LimbControl
 		        internal static GUIContent iconTrash = new GUIContent(EditorGUIUtility.IconContent("TreeEditor.Trash")) { tooltip = "Remove Limb Control from Avatar" };
 		        internal static GUIContent iconError = new GUIContent(EditorGUIUtility.IconContent("console.warnicon.sml")) { tooltip = "Not enough memory available in Expression Parameters!" };
 		        internal static GUIContent iconHelp = new GUIContent(EditorGUIUtility.IconContent("UnityEditor.InspectorWindow"));
-
 				internal static GUIContent
 			        customTreeContent = new GUIContent("Use Custom BlendTree", "Set a custom BlendTree to change the way the limbs move"),
 			        avatarContent = new GUIContent("Avatar Descriptor", "Drag and Drop your avatar here."),
 			        trackingContent = new GUIContent("Add Tracking Control", "Add a SubMenu that allows the individual Enable/Disable of limb tracking"),
 			        sameControlContent = new GUIContent("Use Same Control", "Selected limbs will be controlled together using the same single control");
-
 		        internal static GUIStyle styleTitle = new GUIStyle(GUI.skin.label) {alignment = TextAnchor.MiddleCenter, fontSize = 14, fontStyle = FontStyle.Bold};
 		        internal static GUIStyle comicallyLargeButton = new GUIStyle(GUI.skin.button) {fontSize = 16, fontStyle = FontStyle.Bold};
 	        }
 
-			internal sealed class BGColoredScope : System.IDisposable
+			internal sealed class BGColoredScope : IDisposable
 			{
 				private readonly Color ogColor;
-				public BGColoredScope(Color setColor)
-				{
-					ogColor = GUI.backgroundColor;
-					GUI.backgroundColor = setColor;
-				}
+
+                public BGColoredScope(Color setColor)
+                {
+                    ogColor = GUI.backgroundColor;
+                    GUI.backgroundColor = setColor;
+                }
 
 				public BGColoredScope(bool isActive)
 				{
@@ -880,8 +886,8 @@ namespace OpenVRCTools.LimbControl
 					GUI.backgroundColor = isActive ? Color.green : Color.grey;
 				}
 
-				public void Dispose() =>	GUI.backgroundColor = ogColor;
-				
+				public void Dispose() =>
+                    GUI.backgroundColor = ogColor;
 			}
 
 			internal static string AssetFolderPath(string variable, string title, string prefKey)
@@ -894,9 +900,11 @@ namespace OpenVRCTools.LimbControl
 					if (GUILayout.Button("...", GUILayout.Width(30)))
 					{
 						var dummyPath = EditorUtility.OpenFolderPanel(title, AssetDatabase.IsValidFolder(variable) ? variable : "Assets", string.Empty);
-						if (string.IsNullOrEmpty(dummyPath))
-							return variable;
-						string newPath = FileUtil.GetProjectRelativePath(dummyPath);
+
+                        if (string.IsNullOrEmpty(dummyPath))
+                            return variable;
+
+                        string newPath = FileUtil.GetProjectRelativePath(dummyPath);
 
 						if (!newPath.StartsWith("Assets"))
 						{
